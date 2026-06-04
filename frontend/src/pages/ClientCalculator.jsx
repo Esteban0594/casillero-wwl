@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiPackage, FiTruck, FiInfo, FiDollarSign, FiBox } from 'react-icons/fi';
+import { FiPackage, FiTruck, FiInfo, FiDollarSign, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 
 const shippingMethods = [
   { id: 'standard', name: 'Envío Estándar', days: '7-10 días', pricePerLb: 4.50 },
@@ -14,6 +14,7 @@ const ClientCalculator = () => {
   const [height, setHeight] = useState('');
   const [method, setMethod] = useState('standard');
   const [result, setResult] = useState(null);
+  const [showDimensions, setShowDimensions] = useState(false);
 
   const calculateShipping = (e) => {
     e.preventDefault();
@@ -41,7 +42,8 @@ const ClientCalculator = () => {
       insurance: insurance.toFixed(2),
       total: total.toFixed(2),
       method: selectedMethod.name,
-      days: selectedMethod.days
+      days: selectedMethod.days,
+      hasDimensions: lengthNum > 0 && widthNum > 0 && heightNum > 0
     });
   };
 
@@ -61,7 +63,7 @@ const ClientCalculator = () => {
           <form onSubmit={calculateShipping} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Peso (lbs)
+                Peso (lbs) *
               </label>
               <div className="relative">
                 <FiPackage className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -77,46 +79,63 @@ const ClientCalculator = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Largo (in)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={length}
-                  onChange={(e) => setLength(e.target.value)}
-                  className="input-field"
-                  placeholder="12"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Ancho (in)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={width}
-                  onChange={(e) => setWidth(e.target.value)}
-                  className="input-field"
-                  placeholder="8"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Alto (in)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={height}
-                  onChange={(e) => setHeight(e.target.value)}
-                  className="input-field"
-                  placeholder="6"
-                />
-              </div>
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowDimensions(!showDimensions)}
+                className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-700">
+                    Dimensiones del paquete
+                  </span>
+                  <span className="text-xs text-gray-500">(Opcional)</span>
+                </div>
+                {showDimensions ? <FiChevronUp className="text-gray-500" /> : <FiChevronDown className="text-gray-500" />}
+              </button>
+              
+              {showDimensions && (
+                <div className="p-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 mb-3">
+                    Solo necesario si la agancia lo solicita por tipo de paquete o si deseas un cálculo más preciso con peso volumétrico.
+                  </p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Largo (in)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={length}
+                        onChange={(e) => setLength(e.target.value)}
+                        className="input-field text-sm"
+                        placeholder="12"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Ancho (in)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={width}
+                        onChange={(e) => setWidth(e.target.value)}
+                        className="input-field text-sm"
+                        placeholder="8"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Alto (in)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={height}
+                        onChange={(e) => setHeight(e.target.value)}
+                        className="input-field text-sm"
+                        placeholder="6"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -171,14 +190,24 @@ const ClientCalculator = () => {
                   <span className="text-gray-600">Peso real</span>
                   <span className="font-medium">{result.weight} lbs</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <span className="text-gray-600">Peso volumétrico</span>
-                  <span className="font-medium">{result.volumetricWeight} lbs</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                  <span className="text-gray-600">Peso a cobrar</span>
-                  <span className="font-medium text-wwl-blue">{result.chargeableWeight} lbs</span>
-                </div>
+                {result.hasDimensions && (
+                  <>
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <span className="text-gray-600">Peso volumétrico</span>
+                      <span className="font-medium">{result.volumetricWeight} lbs</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                      <span className="text-gray-600">Peso a cobrar</span>
+                      <span className="font-medium text-wwl-blue">{result.chargeableWeight} lbs</span>
+                    </div>
+                  </>
+                )}
+                {!result.hasDimensions && (
+                  <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                    <span className="text-gray-600">Peso a cobrar</span>
+                    <span className="font-medium text-wwl-blue">{result.weight} lbs</span>
+                  </div>
+                )}
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-600">Envío ({result.method})</span>
@@ -212,11 +241,11 @@ const ClientCalculator = () => {
               <div>
                 <h3 className="font-semibold text-gray-800 mb-2">Información Importante</h3>
                 <ul className="text-sm text-gray-600 space-y-2">
-                  <li>• El peso volumétrico se calcula como (L x W x H) / 139</li>
+                  <li>• El peso es obligatorio para calcular el envío</li>
+                  <li>• Las dimensiones son opcionales pero recomendadas para paquetes grandes</li>
+                  <li>• Si proporcionas dimensiones, se calculará el peso volumétrico</li>
                   <li>• Se cobra el mayor entre el peso real y el volumétrico</li>
                   <li>• Los costos de aduana están incluidos en el cálculo</li>
-                  <li>• Para paquetes con valor mayor a $500, se requiere agente aduanal</li>
-                  <li>• Los tiempos de entrega son estimados desde Miami</li>
                 </ul>
               </div>
             </div>
