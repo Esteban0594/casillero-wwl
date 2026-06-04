@@ -10,8 +10,7 @@ const invoiceItemSchema = new mongoose.Schema({
 const invoiceSchema = new mongoose.Schema({
   invoiceNumber: {
     type: String,
-    unique: true,
-    required: true
+    unique: true
   },
   client: {
     type: mongoose.Schema.Types.ObjectId,

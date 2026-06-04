@@ -10,8 +10,7 @@ import {
   FiBell,
   FiShield,
   FiTruck,
-  FiFileText,
-  FiMessageSquare
+  FiFileText
 } from 'react-icons/fi';
 
 const AdminSidebar = () => {
@@ -24,7 +23,6 @@ const AdminSidebar = () => {
     { path: '/admin/paquetes', icon: <FiPackage />, label: 'Paquetes' },
     { path: '/admin/carriers', icon: <FiTruck />, label: 'Carriers' },
     { path: '/admin/facturas', icon: <FiFileText />, label: 'Facturas' },
-    { path: '/admin/tickets', icon: <FiMessageSquare />, label: 'Tickets' },
     { path: '/admin/reportes', icon: <FiBarChart2 />, label: 'Reportes' },
     { path: '/admin/notificaciones', icon: <FiBell />, label: 'Notificaciones' },
     { path: '/admin/configuracion', icon: <FiSettings />, label: 'Configuración' },
