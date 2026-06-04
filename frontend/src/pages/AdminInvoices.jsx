@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { FiSearch, FiPlus, FiEye, FiCheck, FiX, FiDollarSign, FiFileText, FiClock, FiAlertTriangle, FiDownload } from 'react-icons/fi';
-
-const EXCHANGE_RATE = 520; // Tipo de cambio aproximado
+import { FiSearch, FiPlus, FiEye, FiCheck, FiX, FiDollarSign, FiFileText, FiClock, FiAlertTriangle, FiDownload, FiRefreshCw } from 'react-icons/fi';
 
 const statusConfig = {
   'BORRADOR': { label: 'Borrador', color: 'bg-gray-100 text-gray-800' },
@@ -28,6 +26,9 @@ const AdminInvoices = () => {
   const [invoices, setInvoices] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
+  const [exchangeRate, setExchangeRate] = useState(520);
+  const [exchangeSource, setExchangeSource] = useState('Cargando...');
+  const [exchangeLoading, setExchangeLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -44,7 +45,7 @@ const AdminInvoices = () => {
     dueDate: '',
     notes: '',
     currency: 'USD',
-    exchangeRate: EXCHANGE_RATE,
+    exchangeRate: 520,
     facturaElectronica: false,
     facturaElectronicaInfo: {
       nombre: '',
@@ -62,7 +63,23 @@ const AdminInvoices = () => {
     fetchInvoices();
     fetchStats();
     fetchClients();
+    fetchExchangeRate();
   }, []);
+
+  const fetchExchangeRate = async () => {
+    setExchangeLoading(true);
+    try {
+      const { data } = await axios.get('/api/exchange/rate');
+      if (data.success) {
+        setExchangeRate(data.rate);
+        setExchangeSource(data.source);
+        setFormData(prev => ({ ...prev, exchangeRate: data.rate }));
+      }
+    } catch (error) {
+      console.error('Error al obtener tipo de cambio');
+    }
+    setExchangeLoading(false);
+  };
 
   const fetchInvoices = async () => {
     try {
@@ -411,20 +428,25 @@ const AdminInvoices = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Moneda *</label>
                   <select
                     value={formData.currency}
-                    onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, currency: e.target.value, exchangeRate: exchangeRate })}
                     className="input-field"
                   >
                     <option value="USD">🇺🇸 Dólares (USD) - Recomendado</option>
                     <option value="CRC">🇨🇷 Colones (CRC)</option>
                   </select>
-                  {formData.currency === 'CRC' && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Tipo de cambio: 1 USD = ₡{formData.exchangeRate}
-                    </p>
-                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Cambio</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
+                    Tipo de Cambio
+                    <button 
+                      type="button" 
+                      onClick={fetchExchangeRate} 
+                      className="text-wwl-blue text-xs flex items-center gap-1 hover:underline"
+                      disabled={exchangeLoading}
+                    >
+                      <FiRefreshCw className={exchangeLoading ? 'animate-spin' : ''} /> Actualizar
+                    </button>
+                  </label>
                   <input
                     type="number"
                     step="0.01"
@@ -432,6 +454,9 @@ const AdminInvoices = () => {
                     onChange={(e) => setFormData({ ...formData, exchangeRate: parseFloat(e.target.value) || 1 })}
                     className="input-field"
                   />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Fuente: {exchangeSource} • 1 USD = ₡{formData.exchangeRate}
+                  </p>
                 </div>
               </div>
 
