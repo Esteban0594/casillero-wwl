@@ -34,9 +34,12 @@ export const AuthProvider = ({ children }) => {
       axios.defaults.headers.common['Authorization'] = `Bearer ${userData.token}`;
       return { success: true, user: userData };
     } catch (error) {
+      const errorData = error.response?.data || {};
       return {
         success: false,
-        message: error.response?.data?.message || 'Error al iniciar sesión'
+        message: errorData.message || 'Error al iniciar sesión',
+        blocked: errorData.blocked || false,
+        motivo: errorData.motivo || null
       };
     }
   };

@@ -28,7 +28,24 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  tipoCuenta: {
+    type: String,
+    enum: ['personal', 'juridico'],
+    default: 'personal'
+  },
+  razonSocial: {
+    type: String,
+    trim: true
+  },
+  cedulaJuridica: {
+    type: String,
+    trim: true
+  },
   direccion: {
+    type: String,
+    trim: true
+  },
+  direccionFacturacion: {
     type: String,
     trim: true
   },
@@ -45,6 +62,35 @@ const userSchema = new mongoose.Schema({
   activo: {
     type: Boolean,
     default: true
+  },
+  bloqueado: {
+    type: Boolean,
+    default: false
+  },
+  motivoBloqueo: {
+    type: String
+  },
+  fechaBloqueo: {
+    type: Date
+  },
+  bloqueadoPor: {
+    type: String,
+    enum: ['manual', 'automatico'],
+  },
+  ultimoPago: {
+    type: Date
+  },
+  diasSinPago: {
+    type: Number,
+    default: 0
+  },
+  creditoActivo: {
+    type: Boolean,
+    default: false
+  },
+  limiteCredito: {
+    type: Number,
+    default: 0
   },
   createdAt: {
     type: Date,

@@ -2,19 +2,21 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
-import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiAlertTriangle, FiInfo } from 'react-icons/fi';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [blockedInfo, setBlockedInfo] = useState(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setBlockedInfo(null);
 
     const result = await login(email, password);
 
@@ -26,7 +28,14 @@ const Login = () => {
         navigate('/portal');
       }
     } else {
-      toast.error(result.message);
+      if (result.blocked) {
+        setBlockedInfo({
+          message: result.message,
+          motivo: result.motivo
+        });
+      } else {
+        toast.error(result.message);
+      }
     }
     setLoading(false);
   };
@@ -120,6 +129,33 @@ const Login = () => {
               )}
             </button>
           </form>
+
+          {blockedInfo && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <FiAlertTriangle className="text-red-600 text-xl mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-semibold text-red-800">Cuenta Bloqueada</h4>
+                  <p className="text-sm text-red-700 mt-1">{blockedInfo.message}</p>
+                  {blockedInfo.motivo && (
+                    <p className="text-xs text-red-600 mt-2">Motivo: {blockedInfo.motivo}</p>
+                  )}
+                  <p className="text-xs text-red-600 mt-2">
+                    Contacta a soporte: soporte@casillerowl.com
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <FiInfo className="text-blue-600 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-blue-700">
+                <strong>Servicio a crédito disponible:</strong> A partir de los 60 días como cliente, puedes solicitar servicio a crédito para tus compras internacionales.
+              </p>
+            </div>
+          </div>
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">
