@@ -7,7 +7,9 @@ import {
   FiLogOut, 
   FiHome,
   FiBarChart2,
-  FiBell
+  FiBell,
+  FiShield,
+  FiTruck
 } from 'react-icons/fi';
 
 const AdminSidebar = () => {
@@ -15,8 +17,10 @@ const AdminSidebar = () => {
 
   const menuItems = [
     { path: '/admin', icon: <FiHome />, label: 'Dashboard' },
+    { path: '/admin/usuarios', icon: <FiShield />, label: 'Usuarios' },
     { path: '/admin/clientes', icon: <FiUsers />, label: 'Clientes' },
     { path: '/admin/paquetes', icon: <FiPackage />, label: 'Paquetes' },
+    { path: '/admin/carriers', icon: <FiTruck />, label: 'Carriers' },
     { path: '/admin/reportes', icon: <FiBarChart2 />, label: 'Reportes' },
     { path: '/admin/notificaciones', icon: <FiBell />, label: 'Notificaciones' },
     { path: '/admin/configuracion', icon: <FiSettings />, label: 'Configuración' },

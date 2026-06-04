@@ -19,6 +19,7 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/packages', require('./routes/packages'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/carriers', require('./routes/carriers'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'API Casillero WWL By Aduana WWL' });
