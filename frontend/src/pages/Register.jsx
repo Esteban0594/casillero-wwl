@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
-import { FiUser, FiMail, FiLock, FiPhone, FiCreditCard, FiMapPin } from 'react-icons/fi';
+import { FiUser, FiMail, FiLock, FiPhone, FiCreditCard, FiMapPin, FiEye, FiEyeOff, FiBriefcase } from 'react-icons/fi';
 
 const Register = () => {
+  const [tipoCuenta, setTipoCuenta] = useState('personal');
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -12,8 +13,13 @@ const Register = () => {
     confirmPassword: '',
     telefono: '',
     cedula: '',
-    direccion: ''
+    direccion: '',
+    razonSocial: '',
+    cedulaJuridica: '',
+    emailFacturacion: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -43,7 +49,11 @@ const Register = () => {
       password: formData.password,
       telefono: formData.telefono,
       cedula: formData.cedula,
-      direccion: formData.direccion
+      direccion: formData.direccion,
+      tipoCuenta,
+      razonSocial: tipoCuenta === 'juridico' ? formData.razonSocial : undefined,
+      cedulaJuridica: tipoCuenta === 'juridico' ? formData.cedulaJuridica : undefined,
+      emailFacturacion: tipoCuenta === 'juridico' ? formData.emailFacturacion : undefined
     });
 
     if (result.success) {
@@ -75,10 +85,87 @@ const Register = () => {
             Crear Cuenta
           </h2>
 
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Cuenta</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setTipoCuenta('personal')}
+                className={`p-3 rounded-lg border-2 transition text-center ${
+                  tipoCuenta === 'personal'
+                    ? 'border-wwl-blue bg-blue-50 text-wwl-blue'
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                }`}
+              >
+                <FiUser className="mx-auto text-xl mb-1" />
+                <p className="font-medium text-sm">Persona Física</p>
+                <p className="text-xs text-gray-500">Uso personal</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setTipoCuenta('juridico')}
+                className={`p-3 rounded-lg border-2 transition text-center ${
+                  tipoCuenta === 'juridico'
+                    ? 'border-wwl-blue bg-blue-50 text-wwl-blue'
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                }`}
+              >
+                <FiBriefcase className="mx-auto text-xl mb-1" />
+                <p className="font-medium text-sm">Persona Jurídica</p>
+                <p className="text-xs text-gray-500">Empresa</p>
+              </button>
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
+            {tipoCuenta === 'juridico' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Razón Social *</label>
+                  <div className="relative">
+                    <FiBriefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      name="razonSocial"
+                      value={formData.razonSocial}
+                      onChange={handleChange}
+                      className="input-field pl-10"
+                      placeholder="Nombre de la empresa"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Cédula Jurídica *</label>
+                    <input
+                      type="text"
+                      name="cedulaJuridica"
+                      value={formData.cedulaJuridica}
+                      onChange={handleChange}
+                      className="input-field"
+                      placeholder="3-101-123456"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email Facturación</label>
+                    <input
+                      type="email"
+                      name="emailFacturacion"
+                      value={formData.emailFacturacion}
+                      onChange={handleChange}
+                      className="input-field"
+                      placeholder="facturacion@empresa.com"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombre Completo
+                {tipoCuenta === 'juridico' ? 'Nombre del Representante *' : 'Nombre Completo *'}
               </label>
               <div className="relative">
                 <FiUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -88,16 +175,14 @@ const Register = () => {
                   value={formData.nombre}
                   onChange={handleChange}
                   className="input-field pl-10"
-                  placeholder="Juan Pérez"
+                  placeholder={tipoCuenta === 'juridico' ? 'Nombre del representante legal' : 'Juan Pérez'}
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Correo Electrónico
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico *</label>
               <div className="relative">
                 <FiMail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
@@ -114,35 +199,79 @@ const Register = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Contraseña
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña *</label>
                 <div className="relative">
                   <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className="input-field pl-10"
+                    className="input-field pl-10 pr-10"
                     placeholder="••••••••"
                     required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <FiEyeOff /> : <FiEye />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar *</label>
+                <div className="relative">
+                  <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className="input-field pl-10 pr-10"
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                <div className="relative">
+                  <FiPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="tel"
+                    name="telefono"
+                    value={formData.telefono}
+                    onChange={handleChange}
+                    className="input-field pl-10"
+                    placeholder="+506 8888-8888"
                   />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirmar
+                  {tipoCuenta === 'juridico' ? 'Cédula Física *' : 'Cédula *'}
                 </label>
                 <div className="relative">
-                  <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <FiCreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                   <input
-                    type="password"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
+                    type="text"
+                    name="cedula"
+                    value={formData.cedula}
                     onChange={handleChange}
                     className="input-field pl-10"
-                    placeholder="••••••••"
+                    placeholder="1-1234-5678"
                     required
                   />
                 </div>
@@ -150,43 +279,7 @@ const Register = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Teléfono
-              </label>
-              <div className="relative">
-                <FiPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="tel"
-                  name="telefono"
-                  value={formData.telefono}
-                  onChange={handleChange}
-                  className="input-field pl-10"
-                  placeholder="+506 8888-8888"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Cédula
-              </label>
-              <div className="relative">
-                <FiCreditCard className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  name="cedula"
-                  value={formData.cedula}
-                  onChange={handleChange}
-                  className="input-field pl-10"
-                  placeholder="1-1234-5678"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Dirección
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
               <div className="relative">
                 <FiMapPin className="absolute left-3 top-4 text-gray-400" />
                 <textarea
