@@ -10,6 +10,8 @@ import AdminClients from './pages/AdminClients';
 import AdminPackages from './pages/AdminPackages';
 import AdminUsers from './pages/AdminUsers';
 import AdminCarriers from './pages/AdminCarriers';
+import AdminInvoices from './pages/AdminInvoices';
+import AdminTickets from './pages/AdminTickets';
 import ClientPortal from './pages/ClientPortal';
 import ClientPackages from './pages/ClientPackages';
 import ClientStores from './pages/ClientStores';
@@ -47,6 +49,8 @@ const AdminLayout = () => {
           <Route path="/clientes" element={<AdminClients />} />
           <Route path="/paquetes" element={<AdminPackages />} />
           <Route path="/carriers" element={<AdminCarriers />} />
+          <Route path="/facturas" element={<AdminInvoices />} />
+          <Route path="/tickets" element={<AdminTickets />} />
           <Route path="/reportes" element={<div className="p-6"><h1 className="text-2xl font-bold">Reportes</h1><p className="text-gray-600">Próximamente...</p></div>} />
           <Route path="/notificaciones" element={<div className="p-6"><h1 className="text-2xl font-bold">Notificaciones</h1><p className="text-gray-600">Próximamente...</p></div>} />
           <Route path="/configuracion" element={<div className="p-6"><h1 className="text-2xl font-bold">Configuración</h1><p className="text-gray-600">Próximamente...</p></div>} />

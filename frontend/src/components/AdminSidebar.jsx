@@ -9,7 +9,9 @@ import {
   FiBarChart2,
   FiBell,
   FiShield,
-  FiTruck
+  FiTruck,
+  FiFileText,
+  FiMessageSquare
 } from 'react-icons/fi';
 
 const AdminSidebar = () => {
@@ -21,6 +23,8 @@ const AdminSidebar = () => {
     { path: '/admin/clientes', icon: <FiUsers />, label: 'Clientes' },
     { path: '/admin/paquetes', icon: <FiPackage />, label: 'Paquetes' },
     { path: '/admin/carriers', icon: <FiTruck />, label: 'Carriers' },
+    { path: '/admin/facturas', icon: <FiFileText />, label: 'Facturas' },
+    { path: '/admin/tickets', icon: <FiMessageSquare />, label: 'Tickets' },
     { path: '/admin/reportes', icon: <FiBarChart2 />, label: 'Reportes' },
     { path: '/admin/notificaciones', icon: <FiBell />, label: 'Notificaciones' },
     { path: '/admin/configuracion', icon: <FiSettings />, label: 'Configuración' },
@@ -54,7 +58,7 @@ const AdminSidebar = () => {
         </div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => (
           <NavLink
             key={item.path}
