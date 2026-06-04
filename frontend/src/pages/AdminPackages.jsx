@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { FiSearch, FiPlus, FiPackage, FiTruck, FiCheckCircle, FiClock, FiMapPin, FiEdit2, FiTrash2, FiEye } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiPackage, FiTruck, FiCheckCircle, FiClock, FiMapPin, FiEdit2, FiTrash2, FiUser } from 'react-icons/fi';
 
 const statusConfig = {
   'EN_CAMINO_MIAMI': { label: 'En Camino a Miami', color: 'bg-blue-100 text-blue-800' },
@@ -21,6 +21,10 @@ const AdminPackages = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [clientSearch, setClientSearch] = useState('');
+  const [clients, setClients] = useState([]);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [formData, setFormData] = useState({
     trackingNumber: '',
     clientEmail: '',
@@ -35,6 +39,7 @@ const AdminPackages = () => {
 
   useEffect(() => {
     fetchPackages();
+    fetchClients();
   }, []);
 
   const fetchPackages = async () => {
@@ -47,6 +52,34 @@ const AdminPackages = () => {
       setLoading(false);
     }
   };
+
+  const fetchClients = async () => {
+    try {
+      const { data } = await axios.get('/api/auth/users?role=cliente');
+      setClients(data);
+    } catch (error) {
+      console.error('Error al cargar clientes');
+    }
+  };
+
+  const handleClientSearch = (value) => {
+    setClientSearch(value);
+    setShowClientDropdown(true);
+    setSelectedClient(null);
+  };
+
+  const selectClient = (client) => {
+    setSelectedClient(client);
+    setClientSearch(client.nombre);
+    setFormData({ ...formData, clientEmail: client.email, casillero: client.casillero });
+    setShowClientDropdown(false);
+  };
+
+  const filteredClients = clients.filter(client =>
+    client.nombre.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    client.email.toLowerCase().includes(clientSearch.toLowerCase()) ||
+    client.casillero?.toLowerCase().includes(clientSearch.toLowerCase())
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -105,6 +138,8 @@ const AdminPackages = () => {
       shippingMethod: 'STANDARD',
       notes: ''
     });
+    setClientSearch('');
+    setSelectedClient(null);
   };
 
   const openEditModal = (pkg) => {
@@ -319,21 +354,53 @@ const AdminPackages = () => {
                       value={formData.trackingNumber}
                       onChange={(e) => setFormData({ ...formData, trackingNumber: e.target.value })}
                       className="input-field"
-                      placeholder="1Z999AA10123456784"
+                      placeholder="TBA123456789000, LP009383838383, YT22383838383..."
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">Se detectará automáticamente la empresa de envío</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Se detectará automáticamente: Amazon (TBA...), AliExpress (LP...), Temu (YT...), USPS (94...)
+                    </p>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email del Cliente o Casillero *</label>
-                    <input
-                      type="text"
-                      value={formData.clientEmail}
-                      onChange={(e) => setFormData({ ...formData, clientEmail: e.target.value })}
-                      className="input-field"
-                      placeholder="cliente@email.com o WWL-123456"
-                      required
-                    />
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Buscar Cliente *</label>
+                    <div className="relative">
+                      <FiUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        value={clientSearch}
+                        onChange={(e) => handleClientSearch(e.target.value)}
+                        onFocus={() => setShowClientDropdown(true)}
+                        className="input-field pl-10"
+                        placeholder="Buscar por nombre, email o casillero..."
+                        required
+                      />
+                    </div>
+                    {showClientDropdown && clientSearch && !selectedClient && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {filteredClients.length > 0 ? (
+                          filteredClients.map((client) => (
+                            <div
+                              key={client._id}
+                              onClick={() => selectClient(client)}
+                              className="p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0"
+                            >
+                              <p className="font-medium text-gray-800">{client.nombre}</p>
+                              <p className="text-xs text-gray-500">{client.email} • {client.casillero}</p>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-3 text-gray-500 text-sm">No se encontraron clientes</div>
+                        )}
+                      </div>
+                    )}
+                    {selectedClient && (
+                      <div className="mt-2 p-2 bg-green-50 rounded-lg flex items-center gap-2">
+                        <FiCheckCircle className="text-green-600" />
+                        <span className="text-sm text-green-800">
+                          {selectedClient.nombre} - {selectedClient.casillero}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
@@ -347,13 +414,24 @@ const AdminPackages = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Tienda de Origen</label>
-                    <input
-                      type="text"
+                    <select
                       value={formData.store}
                       onChange={(e) => setFormData({ ...formData, store: e.target.value })}
                       className="input-field"
-                      placeholder="Amazon, eBay, etc."
-                    />
+                    >
+                      <option value="">Seleccionar tienda</option>
+                      <option value="Amazon">Amazon</option>
+                      <option value="eBay">eBay</option>
+                      <option value="AliExpress">AliExpress</option>
+                      <option value="Temu">Temu</option>
+                      <option value="Shein">Shein</option>
+                      <option value="Walmart">Walmart</option>
+                      <option value="Target">Target</option>
+                      <option value="Best Buy">Best Buy</option>
+                      <option value="Nike">Nike</option>
+                      <option value="Apple">Apple</option>
+                      <option value="Otro">Otro</option>
+                    </select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>

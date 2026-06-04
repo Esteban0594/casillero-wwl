@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { FiSearch, FiPlus, FiEdit2, FiTrash2, FiTruck, FiCheck, FiX, FiSettings, FiLink, FiRefreshCw } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiEdit2, FiTrash2, FiTruck, FiCheck, FiX, FiSettings, FiRefreshCw } from 'react-icons/fi';
 
 const AdminCarriers = () => {
   const [carriers, setCarriers] = useState([]);
@@ -9,38 +9,13 @@ const AdminCarriers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [selectedCarrier, setSelectedCarrier] = useState(null);
-  const [showApiModal, setShowApiModal] = useState(false);
-  const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    description: '',
-    website: '',
-    trackingUrl: '',
-    api: {
-      enabled: false,
-      provider: '',
-      apiKey: '',
-      apiSecret: '',
-      accountNumber: '',
-      environment: 'sandbox',
-      endpoints: {
-        tracking: '',
-        rates: '',
-        labels: '',
-        pickup: ''
-      }
-    },
-    pricing: {
-      perPound: 0,
-      customsFeePercent: 10,
-      insurancePercent: 5,
-      minCharge: 0
-    },
-    estimatedDays: {
-      min: 7,
-      max: 10
-    },
-    isActive: true
+  const [apiConfig, setApiConfig] = useState({
+    enabled: false,
+    provider: '',
+    apiKey: '',
+    apiSecret: '',
+    accountNumber: '',
+    environment: 'sandbox'
   });
 
   useEffect(() => {
@@ -58,59 +33,28 @@ const AdminCarriers = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (selectedCarrier) {
-        await axios.put(`/api/carriers/${selectedCarrier._id}`, formData);
-        toast.success('Carrier actualizado exitosamente');
-      } else {
-        await axios.post('/api/carriers', formData);
-        toast.success('Carrier creado exitosamente');
-      }
-      setShowModal(false);
-      setSelectedCarrier(null);
-      resetForm();
-      fetchCarriers();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al procesar solicitud');
-    }
-  };
-
-  const handleEdit = (carrier) => {
+  const handleToggleApi = async (carrier) => {
     setSelectedCarrier(carrier);
-    setFormData({
-      code: carrier.code,
-      name: carrier.name,
-      description: carrier.description || '',
-      website: carrier.website || '',
-      trackingUrl: carrier.trackingUrl || '',
-      api: carrier.api || formData.api,
-      pricing: carrier.pricing || formData.pricing,
-      estimatedDays: carrier.estimatedDays || formData.estimatedDays,
-      isActive: carrier.isActive
+    setApiConfig(carrier.api || {
+      enabled: false,
+      provider: '',
+      apiKey: '',
+      apiSecret: '',
+      accountNumber: '',
+      environment: 'sandbox'
     });
     setShowModal(true);
   };
 
-  const handleApiConfig = (carrier) => {
-    setSelectedCarrier(carrier);
-    setFormData({
-      ...formData,
-      api: carrier.api || formData.api
-    });
-    setShowApiModal(true);
-  };
-
-  const handleApiSubmit = async (e) => {
+  const handleSaveApi = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`/api/carriers/${selectedCarrier._id}`, { api: formData.api });
-      toast.success('Configuración de API actualizada');
-      setShowApiModal(false);
+      await axios.put(`/api/carriers/${selectedCarrier._id}`, { api: apiConfig });
+      toast.success('API configurada correctamente');
+      setShowModal(false);
       fetchCarriers();
     } catch (error) {
-      toast.error('Error al actualizar API');
+      toast.error('Error al guardar configuración');
     }
   };
 
@@ -136,41 +80,6 @@ const AdminCarriers = () => {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      code: '',
-      name: '',
-      description: '',
-      website: '',
-      trackingUrl: '',
-      api: {
-        enabled: false,
-        provider: '',
-        apiKey: '',
-        apiSecret: '',
-        accountNumber: '',
-        environment: 'sandbox',
-        endpoints: {
-          tracking: '',
-          rates: '',
-          labels: '',
-          pickup: ''
-        }
-      },
-      pricing: {
-        perPound: 0,
-        customsFeePercent: 10,
-        insurancePercent: 5,
-        minCharge: 0
-      },
-      estimatedDays: {
-        min: 7,
-        max: 10
-      },
-      isActive: true
-    });
-  };
-
   const filteredCarriers = carriers.filter(carrier =>
     carrier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     carrier.code.toLowerCase().includes(searchTerm.toLowerCase())
@@ -191,9 +100,6 @@ const AdminCarriers = () => {
           <h1 className="text-2xl font-bold text-gray-800">Gestión de Carriers</h1>
           <p className="text-gray-600">Configura las empresas de envío y sus APIs</p>
         </div>
-        <button onClick={() => { resetForm(); setSelectedCarrier(null); setShowModal(true); }} className="btn-primary flex items-center gap-2">
-          <FiPlus /> Nuevo Carrier
-        </button>
       </div>
 
       <div className="card mb-6">
@@ -267,13 +173,28 @@ const AdminCarriers = () => {
             </div>
 
             <div className="flex gap-2 pt-3 border-t border-gray-200">
-              <button onClick={() => handleEdit(carrier)} className="flex-1 btn-secondary text-sm flex items-center justify-center gap-1">
-                <FiEdit2 /> Editar
+              <button 
+                onClick={() => handleToggleApi(carrier)} 
+                className={`flex-1 text-sm flex items-center justify-center gap-1 py-2 px-3 rounded-lg transition ${
+                  carrier.api?.enabled 
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <FiSettings /> {carrier.api?.enabled ? 'Editar API' : 'Configurar API'}
               </button>
-              <button onClick={() => handleApiConfig(carrier)} className="flex-1 btn-secondary text-sm flex items-center justify-center gap-1">
-                <FiSettings /> API
-              </button>
-              <button onClick={() => handleDelete(carrier._id)} className="btn-danger text-sm px-3">
+              {carrier.api?.enabled && (
+                <button 
+                  onClick={() => handleTestApi(carrier._id)} 
+                  className="bg-blue-100 text-blue-700 hover:bg-blue-200 text-sm px-3 py-2 rounded-lg"
+                >
+                  <FiRefreshCw />
+                </button>
+              )}
+              <button 
+                onClick={() => handleDelete(carrier._id)} 
+                className="bg-red-100 text-red-700 hover:bg-red-200 text-sm px-3 py-2 rounded-lg"
+              >
                 <FiTrash2 />
               </button>
             </div>
@@ -281,148 +202,32 @@ const AdminCarriers = () => {
         ))}
       </div>
 
-      {showModal && (
+      {showModal && selectedCarrier && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
-              {selectedCarrier ? 'Editar Carrier' : 'Nuevo Carrier'}
+              Configurar API - {selectedCarrier.name}
             </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Código *</label>
-                  <input
-                    type="text"
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                    className="input-field"
-                    placeholder="DHL"
-                    required
-                    disabled={!!selectedCarrier}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="input-field"
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="input-field"
-                  rows="2"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
-                  <input
-                    type="url"
-                    value={formData.website}
-                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                    className="input-field"
-                    placeholder="https://www.dhl.com"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">URL Tracking</label>
-                  <input
-                    type="url"
-                    value={formData.trackingUrl}
-                    onChange={(e) => setFormData({ ...formData, trackingUrl: e.target.value })}
-                    className="input-field"
-                    placeholder="https://www.dhl.com/track?num="
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Precio/lb ($)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.pricing.perPound}
-                    onChange={(e) => setFormData({ ...formData, pricing: { ...formData.pricing, perPound: parseFloat(e.target.value) || 0 } })}
-                    className="input-field"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mín (días)</label>
-                  <input
-                    type="number"
-                    value={formData.estimatedDays.min}
-                    onChange={(e) => setFormData({ ...formData, estimatedDays: { ...formData.estimatedDays, min: parseInt(e.target.value) || 0 } })}
-                    className="input-field"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Máx (días)</label>
-                  <input
-                    type="number"
-                    value={formData.estimatedDays.max}
-                    onChange={(e) => setFormData({ ...formData, estimatedDays: { ...formData.estimatedDays, max: parseInt(e.target.value) || 0 } })}
-                    className="input-field"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                <select
-                  value={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'true' })}
-                  className="input-field"
-                >
-                  <option value="true">Activo</option>
-                  <option value="false">Inactivo</option>
-                </select>
-              </div>
-              <div className="flex gap-3">
-                <button type="submit" className="btn-primary flex-1">
-                  {selectedCarrier ? 'Actualizar' : 'Crear'}
-                </button>
-                <button type="button" onClick={() => { setShowModal(false); setSelectedCarrier(null); }} className="btn-secondary flex-1">
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {showApiModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">
-              Configurar API - {selectedCarrier?.name}
-            </h2>
-            <form onSubmit={handleApiSubmit} className="space-y-4">
+            <form onSubmit={handleSaveApi} className="space-y-4">
               <div>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={formData.api.enabled}
-                    onChange={(e) => setFormData({ ...formData, api: { ...formData.api, enabled: e.target.checked } })}
+                    checked={apiConfig.enabled}
+                    onChange={(e) => setApiConfig({ ...apiConfig, enabled: e.target.checked })}
                     className="rounded text-wwl-blue focus:ring-wwl-blue"
                   />
                   <span className="text-sm font-medium text-gray-700">Habilitar API</span>
                 </label>
               </div>
 
-              {formData.api.enabled && (
+              {apiConfig.enabled && (
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor de API</label>
                     <select
-                      value={formData.api.provider}
-                      onChange={(e) => setFormData({ ...formData, api: { ...formData.api, provider: e.target.value } })}
+                      value={apiConfig.provider}
+                      onChange={(e) => setApiConfig({ ...apiConfig, provider: e.target.value })}
                       className="input-field"
                     >
                       <option value="">Seleccionar proveedor</option>
@@ -439,8 +244,8 @@ const AdminCarriers = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
                       <input
                         type="password"
-                        value={formData.api.apiKey}
-                        onChange={(e) => setFormData({ ...formData, api: { ...formData.api, apiKey: e.target.value } })}
+                        value={apiConfig.apiKey}
+                        onChange={(e) => setApiConfig({ ...apiConfig, apiKey: e.target.value })}
                         className="input-field"
                         placeholder="Tu API Key"
                       />
@@ -449,8 +254,8 @@ const AdminCarriers = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">API Secret</label>
                       <input
                         type="password"
-                        value={formData.api.apiSecret}
-                        onChange={(e) => setFormData({ ...formData, api: { ...formData.api, apiSecret: e.target.value } })}
+                        value={apiConfig.apiSecret}
+                        onChange={(e) => setApiConfig({ ...apiConfig, apiSecret: e.target.value })}
                         className="input-field"
                         placeholder="Tu API Secret"
                       />
@@ -461,8 +266,8 @@ const AdminCarriers = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Número de Cuenta</label>
                     <input
                       type="text"
-                      value={formData.api.accountNumber}
-                      onChange={(e) => setFormData({ ...formData, api: { ...formData.api, accountNumber: e.target.value } })}
+                      value={apiConfig.accountNumber}
+                      onChange={(e) => setApiConfig({ ...apiConfig, accountNumber: e.target.value })}
                       className="input-field"
                       placeholder="Número de cuenta del carrier"
                     />
@@ -471,39 +276,13 @@ const AdminCarriers = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Ambiente</label>
                     <select
-                      value={formData.api.environment}
-                      onChange={(e) => setFormData({ ...formData, api: { ...formData.api, environment: e.target.value } })}
+                      value={apiConfig.environment}
+                      onChange={(e) => setApiConfig({ ...apiConfig, environment: e.target.value })}
                       className="input-field"
                     >
                       <option value="sandbox">Sandbox (Pruebas)</option>
                       <option value="production">Producción</option>
                     </select>
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <h3 className="text-sm font-medium text-gray-700 mb-3">Endpoints de la API</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Tracking</label>
-                        <input
-                          type="url"
-                          value={formData.api.endpoints.tracking}
-                          onChange={(e) => setFormData({ ...formData, api: { ...formData.api, endpoints: { ...formData.api.endpoints, tracking: e.target.value } } })}
-                          className="input-field text-sm"
-                          placeholder="https://api.carrier.com/v1/track"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500 mb-1">Tarifas</label>
-                        <input
-                          type="url"
-                          value={formData.api.endpoints.rates}
-                          onChange={(e) => setFormData({ ...formData, api: { ...formData.api, endpoints: { ...formData.api.endpoints, rates: e.target.value } } })}
-                          className="input-field text-sm"
-                          placeholder="https://api.carrier.com/v1/rates"
-                        />
-                      </div>
-                    </div>
                   </div>
 
                   <div className="bg-blue-50 p-3 rounded-lg">
@@ -519,12 +298,7 @@ const AdminCarriers = () => {
                 <button type="submit" className="btn-primary flex-1">
                   Guardar Configuración
                 </button>
-                {formData.api.enabled && selectedCarrier && (
-                  <button type="button" onClick={() => handleTestApi(selectedCarrier._id)} className="btn-secondary flex items-center gap-2">
-                    <FiRefreshCw /> Probar
-                  </button>
-                )}
-                <button type="button" onClick={() => setShowApiModal(false)} className="btn-secondary flex-1">
+                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary flex-1">
                   Cancelar
                 </button>
               </div>
