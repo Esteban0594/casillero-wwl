@@ -3,6 +3,8 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FiSearch, FiPlus, FiEye, FiCheck, FiX, FiDollarSign, FiFileText, FiClock, FiAlertTriangle, FiDownload } from 'react-icons/fi';
 
+const EXCHANGE_RATE = 520; // Tipo de cambio aproximado
+
 const statusConfig = {
   'BORRADOR': { label: 'Borrador', color: 'bg-gray-100 text-gray-800' },
   'PENDIENTE': { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
@@ -10,6 +12,16 @@ const statusConfig = {
   'VENCIDA': { label: 'Vencida', color: 'bg-red-100 text-red-800' },
   'CANCELADA': { label: 'Cancelada', color: 'bg-gray-100 text-gray-800' },
   'ANULADA': { label: 'Anulada', color: 'bg-red-100 text-red-800' }
+};
+
+const currencySymbols = {
+  'USD': '$',
+  'CRC': '₡'
+};
+
+const currencyNames = {
+  'USD': 'Dólares (USD)',
+  'CRC': 'Colones (CRC)'
 };
 
 const AdminInvoices = () => {
@@ -30,7 +42,16 @@ const AdminInvoices = () => {
     insurance: 0,
     discount: 0,
     dueDate: '',
-    notes: ''
+    notes: '',
+    currency: 'USD',
+    exchangeRate: EXCHANGE_RATE,
+    facturaElectronica: false,
+    facturaElectronicaInfo: {
+      nombre: '',
+      cedula: '',
+      email: '',
+      direccion: ''
+    }
   });
   const [paymentData, setPaymentData] = useState({
     paymentMethod: 'TRANSFERENCIA',
@@ -72,6 +93,17 @@ const AdminInvoices = () => {
     }
   };
 
+  const handleClientChange = (clientId) => {
+    const client = clients.find(c => c._id === clientId);
+    setFormData({ 
+      ...formData, 
+      clientId,
+      currency: client?.monedaPreferida || 'USD',
+      facturaElectronica: client?.facturaElectronica || false,
+      facturaElectronicaInfo: client?.facturaElectronicaInfo || formData.facturaElectronicaInfo
+    });
+  };
+
   const handleAddItem = () => {
     setFormData({
       ...formData,
@@ -96,10 +128,23 @@ const AdminInvoices = () => {
     return subtotal + tax + (formData.customsFee || 0) + (formData.insurance || 0) - (formData.discount || 0);
   };
 
+  const calculateInOtherCurrency = () => {
+    const total = calculateTotal();
+    if (formData.currency === 'USD') {
+      return total * formData.exchangeRate;
+    } else {
+      return total / formData.exchangeRate;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/invoices', formData);
+      const dataToSend = {
+        ...formData,
+        totalInOtherCurrency: calculateInOtherCurrency()
+      };
+      await axios.post('/api/invoices', dataToSend);
       toast.success('Factura creada exitosamente');
       setShowModal(false);
       resetForm();
@@ -146,7 +191,16 @@ const AdminInvoices = () => {
       insurance: 0,
       discount: 0,
       dueDate: '',
-      notes: ''
+      notes: '',
+      currency: 'USD',
+      exchangeRate: EXCHANGE_RATE,
+      facturaElectronica: false,
+      facturaElectronicaInfo: {
+        nombre: '',
+        cedula: '',
+        email: '',
+        direccion: ''
+      }
     });
   };
 
@@ -251,6 +305,7 @@ const AdminInvoices = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Monto</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">E-Factura</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vencimiento</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
               </tr>
@@ -271,13 +326,31 @@ const AdminInvoices = () => {
                     </p>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <p className="text-sm font-bold text-gray-900">${invoice.total?.toFixed(2)}</p>
-                    <p className="text-xs text-gray-500">{invoice.currency}</p>
+                    <p className="text-sm font-bold text-gray-900">
+                      {currencySymbols[invoice.currency]}{invoice.total?.toFixed(2)}
+                    </p>
+                    <p className="text-xs text-gray-500">{currencyNames[invoice.currency]}</p>
+                    {invoice.totalInOtherCurrency && (
+                      <p className="text-xs text-gray-400">
+                        ≈ {invoice.currency === 'USD' ? '₡' : '$'}{invoice.totalInOtherCurrency?.toFixed(2)}
+                      </p>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig[invoice.status]?.color}`}>
                       {statusConfig[invoice.status]?.label}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {invoice.facturaElectronica ? (
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                        Sí
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                        No
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('es-CR') : '-'}
@@ -319,7 +392,7 @@ const AdminInvoices = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Cliente *</label>
                 <select
                   value={formData.clientId}
-                  onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+                  onChange={(e) => handleClientChange(e.target.value)}
                   className="input-field"
                   required
                 >
@@ -332,6 +405,103 @@ const AdminInvoices = () => {
                   ))}
                 </select>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Moneda *</label>
+                  <select
+                    value={formData.currency}
+                    onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                    className="input-field"
+                  >
+                    <option value="USD">🇺🇸 Dólares (USD) - Recomendado</option>
+                    <option value="CRC">🇨🇷 Colones (CRC)</option>
+                  </select>
+                  {formData.currency === 'CRC' && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Tipo de cambio: 1 USD = ₡{formData.exchangeRate}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Cambio</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.exchangeRate}
+                    onChange={(e) => setFormData({ ...formData, exchangeRate: parseFloat(e.target.value) || 1 })}
+                    className="input-field"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.facturaElectronica}
+                    onChange={(e) => setFormData({ ...formData, facturaElectronica: e.target.checked })}
+                    className="rounded text-wwl-blue focus:ring-wwl-blue"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Factura Electrónica (Hacienda)</span>
+                </label>
+              </div>
+
+              {formData.facturaElectronica && (
+                <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                  <p className="text-sm font-medium text-blue-800">Datos para Factura Electrónica</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Nombre o Razón Social</label>
+                      <input
+                        type="text"
+                        value={formData.facturaElectronicaInfo.nombre}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          facturaElectronicaInfo: { ...formData.facturaElectronicaInfo, nombre: e.target.value }
+                        })}
+                        className="input-field text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Cédula / Cédula Jurídica</label>
+                      <input
+                        type="text"
+                        value={formData.facturaElectronicaInfo.cedula}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          facturaElectronicaInfo: { ...formData.facturaElectronicaInfo, cedula: e.target.value }
+                        })}
+                        className="input-field text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={formData.facturaElectronicaInfo.email}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          facturaElectronicaInfo: { ...formData.facturaElectronicaInfo, email: e.target.value }
+                        })}
+                        className="input-field text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Dirección</label>
+                      <input
+                        type="text"
+                        value={formData.facturaElectronicaInfo.direccion}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          facturaElectronicaInfo: { ...formData.facturaElectronicaInfo, direccion: e.target.value }
+                        })}
+                        className="input-field text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Items de Facturación</label>
@@ -363,7 +533,7 @@ const AdminInvoices = () => {
                       required
                     />
                     <span className="flex items-center text-sm font-medium w-24">
-                      ${(item.quantity * item.unitPrice).toFixed(2)}
+                      {currencySymbols[formData.currency]}{(item.quantity * item.unitPrice).toFixed(2)}
                     </span>
                     {formData.items.length > 1 && (
                       <button type="button" onClick={() => handleRemoveItem(index)} className="text-red-500">
@@ -420,9 +590,17 @@ const AdminInvoices = () => {
               </div>
 
               <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center mb-2">
                   <span className="text-lg font-semibold">Total:</span>
-                  <span className="text-2xl font-bold text-wwl-blue">${calculateTotal().toFixed(2)}</span>
+                  <span className="text-2xl font-bold text-wwl-blue">
+                    {currencySymbols[formData.currency]}{calculateTotal().toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm text-gray-500">
+                  <span>Equivalente:</span>
+                  <span>
+                    {formData.currency === 'USD' ? '₡' : '$'}{calculateInOtherCurrency().toFixed(2)}
+                  </span>
                 </div>
               </div>
 
@@ -466,7 +644,10 @@ const AdminInvoices = () => {
             <h2 className="text-xl font-bold mb-4">Registrar Pago</h2>
             <div className="mb-4 p-3 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-500">Factura: {selectedInvoice.invoiceNumber}</p>
-              <p className="text-lg font-bold">Total: ${selectedInvoice.total?.toFixed(2)}</p>
+              <p className="text-lg font-bold">
+                Total: {currencySymbols[selectedInvoice.currency]}{selectedInvoice.total?.toFixed(2)}
+              </p>
+              <p className="text-xs text-gray-500">{currencyNames[selectedInvoice.currency]}</p>
             </div>
             <form onSubmit={handlePay} className="space-y-4">
               <div>

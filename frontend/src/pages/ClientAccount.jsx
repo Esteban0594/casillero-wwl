@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
-import { FiUser, FiMail, FiPhone, FiCreditCard, FiMapPin, FiSave, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiUser, FiMail, FiPhone, FiCreditCard, FiMapPin, FiSave, FiLock, FiEye, FiEyeOff, FiDollarSign, FiFileText } from 'react-icons/fi';
 import axios from 'axios';
 
 const ClientAccount = () => {
@@ -16,7 +16,15 @@ const ClientAccount = () => {
     email: user?.email || '',
     telefono: user?.telefono || '',
     cedula: user?.cedula || '',
-    direccion: user?.direccion || ''
+    direccion: user?.direccion || '',
+    monedaPreferida: user?.monedaPreferida || 'USD',
+    facturaElectronica: user?.facturaElectronica || false,
+    facturaElectronicaInfo: {
+      nombre: user?.facturaElectronicaInfo?.nombre || '',
+      cedula: user?.facturaElectronicaInfo?.cedula || '',
+      email: user?.facturaElectronicaInfo?.email || '',
+      direccion: user?.facturaElectronicaInfo?.direccion || ''
+    }
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -98,6 +106,17 @@ const ClientAccount = () => {
             >
               <FiUser />
               <span>Información Personal</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('billing')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+                activeTab === 'billing'
+                  ? 'bg-wwl-blue text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <FiDollarSign />
+              <span>Facturación</span>
             </button>
             <button
               onClick={() => setActiveTab('password')}
@@ -218,6 +237,127 @@ const ClientAccount = () => {
                   )}
                 </button>
               </form>
+            </div>
+          )}
+
+          {activeTab === 'billing' && (
+            <div className="space-y-6">
+              <div className="card">
+                <h2 className="text-xl font-semibold text-gray-800 mb-6">Preferencias de Facturación</h2>
+                <form onSubmit={handleProfileSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Moneda Preferida</label>
+                    <select
+                      name="monedaPreferida"
+                      value={formData.monedaPreferida}
+                      onChange={handleChange}
+                      className="input-field"
+                    >
+                      <option value="USD">🇺🇸 Dólares (USD) - Recomendado</option>
+                      <option value="CRC">🇨🇷 Colones (CRC)</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Esta será la moneda por defecto en tus facturas
+                    </p>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="facturaElectronica"
+                        checked={formData.facturaElectronica}
+                        onChange={(e) => setFormData({ ...formData, facturaElectronica: e.target.checked })}
+                        className="rounded text-wwl-blue focus:ring-wwl-blue w-5 h-5"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Factura Electrónica</span>
+                        <p className="text-xs text-gray-500">Activar para recibir facturas electrónicas válidas ante Hacienda</p>
+                      </div>
+                    </label>
+                  </div>
+
+                  {formData.facturaElectronica && (
+                    <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                      <p className="text-sm font-medium text-blue-800 flex items-center gap-2">
+                        <FiFileText /> Datos para Factura Electrónica
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Nombre o Razón Social *</label>
+                          <input
+                            type="text"
+                            value={formData.facturaElectronicaInfo.nombre}
+                            onChange={(e) => setFormData({ 
+                              ...formData, 
+                              facturaElectronicaInfo: { ...formData.facturaElectronicaInfo, nombre: e.target.value }
+                            })}
+                            className="input-field text-sm"
+                            placeholder="Nombre completo o empresa"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Cédula Física o Jurídica *</label>
+                          <input
+                            type="text"
+                            value={formData.facturaElectronicaInfo.cedula}
+                            onChange={(e) => setFormData({ 
+                              ...formData, 
+                              facturaElectronicaInfo: { ...formData.facturaElectronicaInfo, cedula: e.target.value }
+                            })}
+                            className="input-field text-sm"
+                            placeholder="1-1234-5678 o 3-101-123456"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Email para Factura *</label>
+                          <input
+                            type="email"
+                            value={formData.facturaElectronicaInfo.email}
+                            onChange={(e) => setFormData({ 
+                              ...formData, 
+                              facturaElectronicaInfo: { ...formData.facturaElectronicaInfo, email: e.target.value }
+                            })}
+                            className="input-field text-sm"
+                            placeholder="facturacion@email.com"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Dirección Fiscal *</label>
+                          <input
+                            type="text"
+                            value={formData.facturaElectronicaInfo.direccion}
+                            onChange={(e) => setFormData({ 
+                              ...formData, 
+                              facturaElectronicaInfo: { ...formData.facturaElectronicaInfo, direccion: e.target.value }
+                            })}
+                            className="input-field text-sm"
+                            placeholder="Dirección completa"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-blue-600">
+                        Estos datos son requeridos por Hacienda para la emisión de facturas electrónicas.
+                      </p>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-primary flex items-center gap-2"
+                  >
+                    {loading ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        <FiSave />
+                        Guardar Preferencias
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
             </div>
           )}
 

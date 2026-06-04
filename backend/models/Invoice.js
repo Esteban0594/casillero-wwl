@@ -59,7 +59,25 @@ const invoiceSchema = new mongoose.Schema({
   },
   currency: {
     type: String,
+    enum: ['USD', 'CRC'],
     default: 'USD'
+  },
+  exchangeRate: {
+    type: Number,
+    default: 1
+  },
+  totalInOtherCurrency: {
+    type: Number
+  },
+  facturaElectronica: {
+    type: Boolean,
+    default: false
+  },
+  facturaElectronicaInfo: {
+    nombre: { type: String },
+    cedula: { type: String },
+    email: { type: String },
+    direccion: { type: String }
   },
   status: {
     type: String,
@@ -68,7 +86,7 @@ const invoiceSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['TRANSFERENCIA', 'EFECTIVO', 'TARjeta', 'SINPE', 'OTRO'],
+    enum: ['TRANSFERENCIA', 'EFECTIVO', 'TARJETA', 'SINPE', 'OTRO'],
   },
   paymentReference: {
     type: String

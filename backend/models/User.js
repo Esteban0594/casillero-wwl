@@ -49,6 +49,21 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  monedaPreferida: {
+    type: String,
+    enum: ['USD', 'CRC'],
+    default: 'USD'
+  },
+  facturaElectronica: {
+    type: Boolean,
+    default: false
+  },
+  facturaElectronicaInfo: {
+    nombre: { type: String },
+    cedula: { type: String },
+    email: { type: String },
+    direccion: { type: String }
+  },
   role: {
     type: String,
     enum: ['cliente', 'admin'],
