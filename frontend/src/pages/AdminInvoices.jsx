@@ -210,7 +210,7 @@ const AdminInvoices = () => {
       dueDate: '',
       notes: '',
       currency: 'USD',
-      exchangeRate: EXCHANGE_RATE,
+      exchangeRate: exchangeRate,
       facturaElectronica: false,
       facturaElectronicaInfo: {
         nombre: '',
