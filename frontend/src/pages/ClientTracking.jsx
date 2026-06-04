@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { FiSearch, FiPackage, FiTruck, FiCheckCircle, FiClock, FiMapPin, FiInfo, FiPlane, FiHome, FiArrowRight } from 'react-icons/fi';
+import { FiSearch, FiPackage, FiTruck, FiCheckCircle, FiClock, FiMapPin, FiInfo, FiHome, FiArrowRight } from 'react-icons/fi';
 
 const statusConfig = {
   'EN_CAMINO_MIAMI': { label: 'En Camino a Miami', color: 'bg-blue-100 text-blue-800', step: 1 },
