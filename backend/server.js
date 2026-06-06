@@ -23,6 +23,7 @@ app.use('/api/carriers', require('./routes/carriers'));
 app.use('/api/invoices', require('./routes/invoices'));
 app.use('/api/tickets', require('./routes/tickets'));
 app.use('/api/exchange', require('./routes/exchange'));
+app.use('/api/quotes', require('./routes/quotes'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'API Casillero WWL By Aduana WWL' });
