@@ -209,25 +209,27 @@ const AdminQuotes = () => {
     setSelectedClient(null);
   };
 
-  const generatePDF = (quote) => {
+  const generatePDF = async (quote) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Logo
-    const logoUrl = '/img/logo.png';
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
+    // Intentar cargar el logo
+    try {
+      const logoUrl = '/img/logo.png';
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = logoUrl;
+      });
+      
       doc.addImage(img, 'PNG', 15, 10, 30, 30);
-      generatePDFContent(doc, quote, pageWidth);
-    };
-    img.onerror = () => {
-      generatePDFContent(doc, quote, pageWidth);
-    };
-    img.src = logoUrl;
-  };
+    } catch (error) {
+      console.log('Logo no cargado, continuando sin logo');
+    }
 
-  const generatePDFContent = (doc, quote, pageWidth) => {
     // Encabezado empresa
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
@@ -235,26 +237,26 @@ const AdminQuotes = () => {
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Cédula Jurídica: ${COMPANY.cedulaJuridica}`, 50, 24);
+    doc.text(`Cedula Juridica: ${COMPANY.cedulaJuridica}`, 50, 24);
     doc.text(`Tel: ${COMPANY.telefono} | Email: ${COMPANY.email}`, 50, 29);
-    doc.text(`Dirección: ${COMPANY.direccion}`, 50, 34);
+    doc.text(`Direccion: ${COMPANY.direccion}`, 50, 34);
 
-    // Línea separadora
+    // Linea separadora
     doc.setDrawColor(30, 64, 175);
     doc.setLineWidth(0.5);
     doc.line(15, 38, pageWidth - 15, 38);
 
-    // Título COTIZACIÓN
+    // Titulo COTIZACION
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(30, 64, 175);
-    doc.text('COTIZACIÓN', pageWidth - 15, 18, { align: 'right' });
+    doc.text('COTIZACION', pageWidth - 15, 18, { align: 'right' });
     
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
     doc.text(`No: ${quote.quoteNumber}`, pageWidth - 15, 24, { align: 'right' });
     doc.text(`Fecha: ${new Date(quote.createdAt).toLocaleDateString('es-CR')}`, pageWidth - 15, 29, { align: 'right' });
-    doc.text(`Válida hasta: ${quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('es-CR') : 'N/A'}`, pageWidth - 15, 34, { align: 'right' });
+    doc.text(`Valida hasta: ${quote.validUntil ? new Date(quote.validUntil).toLocaleDateString('es-CR') : 'N/A'}`, pageWidth - 15, 34, { align: 'right' });
 
     // Datos del cliente
     let y = 48;
@@ -269,17 +271,17 @@ const AdminQuotes = () => {
     y += 5;
     
     if (quote.client?.tipoCuenta === 'juridico') {
-      doc.text(`Razón Social: ${quote.client?.razonSocial || 'N/A'}`, 15, y);
+      doc.text(`Razon Social: ${quote.client?.razonSocial || 'N/A'}`, 15, y);
       y += 5;
-      doc.text(`Cédula Jurídica: ${quote.client?.cedulaJuridica || 'N/A'}`, 15, y);
+      doc.text(`Cedula Juridica: ${quote.client?.cedulaJuridica || 'N/A'}`, 15, y);
       y += 5;
     }
     
-    doc.text(`Cédula: ${quote.client?.cedula || 'N/A'}`, 15, y);
+    doc.text(`Cedula: ${quote.client?.cedula || 'N/A'}`, 15, y);
     y += 5;
     doc.text(`Email: ${quote.client?.email || 'N/A'}`, 15, y);
     y += 5;
-    doc.text(`Teléfono: ${quote.client?.telefono || 'N/A'}`, 15, y);
+    doc.text(`Telefono: ${quote.client?.telefono || 'N/A'}`, 15, y);
     y += 5;
     doc.text(`Casillero: ${quote.client?.casillero || 'N/A'}`, 15, y);
     y += 10;
@@ -295,7 +297,7 @@ const AdminQuotes = () => {
 
     doc.autoTable({
       startY: y,
-      head: [['#', 'Descripción', 'Cant.', 'Precio Unit.', 'Total']],
+      head: [['#', 'Descripcion', 'Cant.', 'Precio Unit.', 'Total']],
       body: tableData,
       theme: 'grid',
       headStyles: {
@@ -350,12 +352,12 @@ const AdminQuotes = () => {
       y += 5;
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Equivalente: ₡${(quote.total * quote.exchangeRate).toFixed(2)} CRC`, pageWidth - 15, y, { align: 'right' });
+      doc.text(`Equivalente: CRC ${(quote.total * quote.exchangeRate).toFixed(2)}`, pageWidth - 15, y, { align: 'right' });
     } else {
       y += 5;
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Equivalente: $${(quote.total / quote.exchangeRate).toFixed(2)} USD`, pageWidth - 15, y, { align: 'right' });
+      doc.text(`Equivalente: USD ${(quote.total / quote.exchangeRate).toFixed(2)}`, pageWidth - 15, y, { align: 'right' });
     }
 
     y += 15;
@@ -372,7 +374,7 @@ const AdminQuotes = () => {
       y += splitNotes.length * 5 + 5;
     }
 
-    // Términos
+    // Terminos
     if (quote.terms) {
       doc.setFontSize(9);
       doc.setFont('helvetica', 'italic');
@@ -381,13 +383,13 @@ const AdminQuotes = () => {
       doc.text(splitTerms, 15, y);
     }
 
-    // Pie de página
+    // Pie de pagina
     const pageHeight = doc.internal.pageSize.getHeight();
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text(`${COMPANY.nombre} | ${COMPANY.cedulaJuridica} | ${COMPANY.telefono}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
 
-    // Guardar PDF
+    // Guardar PDF - esto abrira el dialogo de guardar del navegador
     doc.save(`${quote.quoteNumber}.pdf`);
     toast.success('PDF descargado exitosamente');
   };
