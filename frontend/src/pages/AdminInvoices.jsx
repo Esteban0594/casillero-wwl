@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { FiSearch, FiPlus, FiEye, FiCheck, FiX, FiDollarSign, FiFileText, FiClock, FiAlertTriangle, FiDownload, FiRefreshCw } from 'react-icons/fi';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+
+const COMPANY = {
+  nombre: 'Aduana WWL SRL',
+  cedulaJuridica: '3-102-875441',
+  telefono: '(+506) 4070-1004',
+  email: 'facturawwl@aduanawwl.com',
+  direccion: 'Alajuela, San Antonio, Montecillos, Zona Franca Z, Bodega 3D'
+};
 
 const statusConfig = {
   'BORRADOR': { label: 'Borrador', color: 'bg-gray-100 text-gray-800' },
@@ -221,6 +231,242 @@ const AdminInvoices = () => {
     });
   };
 
+  const generatePDF = async (invoice) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Intentar cargar el logo
+    try {
+      const logoUrl = '/img/logo.png';
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = logoUrl;
+      });
+      
+      doc.addImage(img, 'PNG', 15, 10, 30, 30);
+    } catch (error) {
+      console.log('Logo no cargado, continuando sin logo');
+    }
+
+    // Encabezado empresa
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(COMPANY.nombre, 50, 18);
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Cedula Juridica: ${COMPANY.cedulaJuridica}`, 50, 24);
+    doc.text(`Tel: ${COMPANY.telefono} | Email: ${COMPANY.email}`, 50, 29);
+    doc.text(`Direccion: ${COMPANY.direccion}`, 50, 34);
+
+    // Linea separadora
+    doc.setDrawColor(30, 64, 175);
+    doc.setLineWidth(0.5);
+    doc.line(15, 38, pageWidth - 15, 38);
+
+    // Titulo FACTURA
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 64, 175);
+    doc.text('FACTURA', pageWidth - 15, 18, { align: 'right' });
+    
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`No: ${invoice.invoiceNumber}`, pageWidth - 15, 24, { align: 'right' });
+    doc.text(`Fecha: ${new Date(invoice.createdAt).toLocaleDateString('es-CR')}`, pageWidth - 15, 29, { align: 'right' });
+    doc.text(`Vence: ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('es-CR') : 'N/A'}`, pageWidth - 15, 34, { align: 'right' });
+
+    // Datos del cliente
+    let y = 48;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DATOS DEL CLIENTE', 15, y);
+    y += 6;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Cliente: ${invoice.client?.nombre || 'N/A'}`, 15, y);
+    y += 5;
+    
+    if (invoice.client?.tipoCuenta === 'juridico') {
+      doc.text(`Razon Social: ${invoice.client?.razonSocial || 'N/A'}`, 15, y);
+      y += 5;
+      doc.text(`Cedula Juridica: ${invoice.client?.cedulaJuridica || 'N/A'}`, 15, y);
+      y += 5;
+    }
+    
+    doc.text(`Cedula: ${invoice.client?.cedula || 'N/A'}`, 15, y);
+    y += 5;
+    doc.text(`Email: ${invoice.client?.email || 'N/A'}`, 15, y);
+    y += 5;
+    doc.text(`Telefono: ${invoice.client?.telefono || 'N/A'}`, 15, y);
+    y += 5;
+    doc.text(`Casillero: ${invoice.client?.casillero || 'N/A'}`, 15, y);
+    y += 10;
+
+    // Tabla de items
+    const tableData = invoice.items.map((item, index) => [
+      index + 1,
+      item.description,
+      item.quantity,
+      `${currencySymbols[invoice.currency]}${item.unitPrice.toFixed(2)}`,
+      `${currencySymbols[invoice.currency]}${item.total.toFixed(2)}`
+    ]);
+
+    doc.autoTable({
+      startY: y,
+      head: [['#', 'Descripcion', 'Cant.', 'Precio Unit.', 'Total']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [30, 64, 175],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold'
+      },
+      styles: {
+        fontSize: 9,
+        cellPadding: 3
+      },
+      columnStyles: {
+        0: { cellWidth: 15 },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 20 },
+        3: { cellWidth: 35 },
+        4: { cellWidth: 35 }
+      }
+    });
+
+    y = doc.lastAutoTable.finalY + 10;
+
+    // Totales
+    const totalsX = pageWidth - 80;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    
+    doc.text('Subtotal:', totalsX, y);
+    doc.text(`${currencySymbols[invoice.currency]}${invoice.subtotal.toFixed(2)}`, pageWidth - 15, y, { align: 'right' });
+    y += 5;
+    
+    doc.text(`IVA (${invoice.taxPercent}%):`, totalsX, y);
+    doc.text(`${currencySymbols[invoice.currency]}${invoice.tax.toFixed(2)}`, pageWidth - 15, y, { align: 'right' });
+    y += 5;
+    
+    if (invoice.customsFee > 0) {
+      doc.text('Aduana:', totalsX, y);
+      doc.text(`${currencySymbols[invoice.currency]}${invoice.customsFee.toFixed(2)}`, pageWidth - 15, y, { align: 'right' });
+      y += 5;
+    }
+    
+    if (invoice.insurance > 0) {
+      doc.text('Seguro:', totalsX, y);
+      doc.text(`${currencySymbols[invoice.currency]}${invoice.insurance.toFixed(2)}`, pageWidth - 15, y, { align: 'right' });
+      y += 5;
+    }
+    
+    if (invoice.discount > 0) {
+      doc.text('Descuento:', totalsX, y);
+      doc.text(`-${currencySymbols[invoice.currency]}${invoice.discount.toFixed(2)}`, pageWidth - 15, y, { align: 'right' });
+      y += 5;
+    }
+    
+    doc.setDrawColor(30, 64, 175);
+    doc.line(totalsX, y, pageWidth - 15, y);
+    y += 5;
+    
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL:', totalsX, y);
+    doc.text(`${currencySymbols[invoice.currency]}${invoice.total.toFixed(2)}`, pageWidth - 15, y, { align: 'right' });
+    
+    if (invoice.currency === 'USD') {
+      y += 5;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Equivalente: CRC ${(invoice.total * invoice.exchangeRate).toFixed(2)}`, pageWidth - 15, y, { align: 'right' });
+    } else {
+      y += 5;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Equivalente: USD ${(invoice.total / invoice.exchangeRate).toFixed(2)}`, pageWidth - 15, y, { align: 'right' });
+    }
+
+    y += 10;
+
+    // Estado de la factura
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Estado: ${statusConfig[invoice.status]?.label || invoice.status}`, 15, y);
+    y += 5;
+    
+    if (invoice.paidAt) {
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Pagada el: ${new Date(invoice.paidAt).toLocaleDateString('es-CR')}`, 15, y);
+      y += 5;
+      if (invoice.paymentMethod) {
+        doc.text(`Metodo de pago: ${invoice.paymentMethod}`, 15, y);
+        y += 5;
+      }
+      if (invoice.paymentReference) {
+        doc.text(`Referencia: ${invoice.paymentReference}`, 15, y);
+        y += 5;
+      }
+    }
+
+    // Factura electronica
+    if (invoice.facturaElectronica) {
+      y += 5;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('FACTURA ELECTRONICA', 15, y);
+      y += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      if (invoice.facturaElectronicaInfo?.nombre) {
+        doc.text(`Nombre: ${invoice.facturaElectronicaInfo.nombre}`, 15, y);
+        y += 4;
+      }
+      if (invoice.facturaElectronicaInfo?.cedula) {
+        doc.text(`Cedula: ${invoice.facturaElectronicaInfo.cedula}`, 15, y);
+        y += 4;
+      }
+      if (invoice.facturaElectronicaInfo?.email) {
+        doc.text(`Email: ${invoice.facturaElectronicaInfo.email}`, 15, y);
+        y += 4;
+      }
+      if (invoice.facturaElectronicaInfo?.direccion) {
+        doc.text(`Direccion: ${invoice.facturaElectronicaInfo.direccion}`, 15, y);
+        y += 4;
+      }
+    }
+
+    // Notas
+    if (invoice.notes) {
+      y += 5;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('NOTAS:', 15, y);
+      y += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const splitNotes = doc.splitTextToSize(invoice.notes, pageWidth - 30);
+      doc.text(splitNotes, 15, y);
+    }
+
+    // Pie de pagina
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`${COMPANY.nombre} | ${COMPANY.cedulaJuridica} | ${COMPANY.telefono}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+
+    // Guardar PDF
+    doc.save(`${invoice.invoiceNumber}.pdf`);
+    toast.success('PDF descargado exitosamente');
+  };
+
   const filteredInvoices = invoices.filter(inv => {
     const matchesSearch = inv.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       inv.client?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -373,10 +619,17 @@ const AdminInvoices = () => {
                     {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('es-CR') : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button 
+                      onClick={() => generatePDF(invoice)} 
+                      className="text-green-600 hover:text-green-900 mr-3"
+                      title="Descargar PDF"
+                    >
+                      <FiDownload />
+                    </button>
                     {invoice.status === 'PENDIENTE' && (
                       <button 
                         onClick={() => { setSelectedInvoice(invoice); setShowPayModal(true); }} 
-                        className="text-green-600 hover:text-green-900 mr-3"
+                        className="text-blue-600 hover:text-blue-900 mr-3"
                         title="Registrar Pago"
                       >
                         <FiDollarSign />
